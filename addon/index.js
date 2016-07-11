@@ -1,4 +1,6 @@
 var self = require("sdk/self");
+const tabs = require("sdk/tabs");
+const { Cu, Cc, Ci } = require("chrome");
 
 let initialized = false;
 const notificationBarValue = "recommendation-notification-bar";
@@ -31,8 +33,13 @@ function showRecommendations(recommendations) {
       nb.buttonMaker.yes({
         label: recommendation.label,
         callback: function (notebox, button) {
-          hideNotificationBar();
-          // FIXME: do something with the recommendation
+          try {
+            hideNotificationBar();
+            tabs.open(recommendation.url);
+            // FIXME: do something with the recommendation
+          } catch (e) {
+            console.error("Error:", e, e.stack);
+          }
         }
       })
     );
@@ -87,4 +94,24 @@ function hideNotificationBar(browser) {
     removed = true;
   }
   return removed;
+}
+
+tabs.on("ready", function (tab) {
+  findRecommendations(tab).then((recommendations) => {
+    if (recommendations && recommendations.length) {
+      showRecommendations(recommendations);
+    }
+  });
+});
+
+function findRecommendations(tab) {
+  return Promise.resolve([
+    {
+      label: "Reddit",
+      url: "https://reddit.com"
+    }, {
+      label: "Mozilla",
+      url: "https://mozilla.org"
+    }
+  ]);
 }
