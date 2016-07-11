@@ -1,0 +1,14 @@
+{
+  "name": "recommend-links",
+  "description": "Add-on for recommending links",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:mozilla/recommend-links-hack.git"
+  },
+  "dependencies": {
+    "jpm": "^1.0.7",
+    "nodemon": "^1.9.2"
+  },
+  "license": "MPL-2.0"
+}

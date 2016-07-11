@@ -1,6 +1,6 @@
 {
   "title": "Recommend Links",
-  "name": "recomment-links",
+  "name": "recommend-links",
   "version": "0.0.1",
   "description": "Contextually recommend links",
   "main": "index.js",

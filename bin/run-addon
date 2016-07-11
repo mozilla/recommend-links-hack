@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -e
+cd "$(dirname ${BASH_SOURCE[0]})/.."
+base="$(pwd)"
+PATH="node_modules/.bin:$PATH"
+
+if [[ "$1" = "--upload" ]] ; then
+  jpm xpi --addon-dir="$base/addon"
+  echo "Uploading to the browser"
+  echo "  (if this fails, install: https://addons.mozilla.org/en-US/firefox/addon/autoinstaller/)"
+  # Doesn't return any content, leads to an unnecessary error:
+  wget --post-file="$base/addon/@recommend-links-0.0.1.xpi" http://localhost:8888 || echo "no content"
+  exit
+fi
+
+if [[ -z "$NO_AUTO" ]] ; then
+  nodemon \
+    -w addon/ -w static/ -w shared/ \
+    -w Makefile \
+    --on-change-only \
+    -e .js,.scss,.css,.png,.svg,.ttf,.html \
+    --exec bash $0 -- --upload &
+fi
+
+jpm run --addon-dir="$base/addon" --no-copy "$@" 2>&1
