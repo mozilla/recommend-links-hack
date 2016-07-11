@@ -10,6 +10,14 @@
     "fennec": ">=38.0a1"
   },
   "license": "MPL",
+  "preferences": [
+    {
+      "name": "searchStrategy",
+      "title": "Preferred search strategy",
+      "type": "string",
+      "value": ""
+    }
+  ],
   "keywords": [
     "jetpack"
   ]

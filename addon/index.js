@@ -1,8 +1,10 @@
 var self = require("sdk/self");
 const tabs = require("sdk/tabs");
 const { Cu, Cc, Ci } = require("chrome");
+const recommenderRegistry = require("./recommender-registry");
 
 let initialized = false;
+let Services;
 const notificationBarValue = "recommendation-notification-bar";
 
 function getNotificationBox(browser) {
@@ -14,17 +16,26 @@ function getNotificationBox(browser) {
   return gBrowser.getNotificationBox(browser);
 }
 
-function showRecommendations(recommendations) {
+function showRecommendations(recommendations, tab) {
   var nb = require("./notificationbox");
   if (nb.notificationbox().getNotificationWithValue(notificationBarValue) !== null) {
-    return;
+    hideNotificationBar();
   }
   let thebox = nb.notificationbox();
   let messageNode = thebox.ownerDocument.createElement("span");
   messageNode.style.border = "none";
   messageNode.style.marginLeft = "10px";
   messageNode.style.fontWeight = "normal";
-  messageNode.appendChild(thebox.ownerDocument.createTextNode("Recommendations:"));
+  let message = "Recommendations:";
+  if (! recommendations.length) {
+    message = "No recommendations available";
+  }
+  message = `[${recommenderRegistry.current().name}] ${message}`;
+  messageNode.appendChild(thebox.ownerDocument.createTextNode(message));
+  messageNode.onclick = function () {
+    recommenderRegistry.setNext();
+    refreshRecommendation();
+  };
   let fragment = thebox.ownerDocument.createDocumentFragment();
   fragment.appendChild(messageNode);
   let buttons = [];
@@ -61,7 +72,6 @@ function showRecommendations(recommendations) {
         console.warn("Unexpected message on notificationbox:", message);
         return;
       }
-      shotcontext.destroy();
     },
     buttons: buttons
   });
@@ -96,22 +106,40 @@ function hideNotificationBar(browser) {
   return removed;
 }
 
-tabs.on("ready", function (tab) {
-  findRecommendations(tab).then((recommendations) => {
-    if (recommendations && recommendations.length) {
-      showRecommendations(recommendations);
-    }
+tabs.on("ready", refreshRecommendation);
+
+function refreshRecommendation(tab) {
+  recommenderRegistry.current().findRecommendations(tab).then((recommendations) => {
+    showRecommendations(recommendations, tab);
   });
+}
+
+recommenderRegistry.register({
+  findRecommendations: function (tab) {
+    return Promise.resolve([
+      {
+        label: "Reddit",
+        url: "https://reddit.com"
+      }, {
+        label: "Mozilla",
+        url: "https://mozilla.org"
+      }
+    ]);
+  },
+  name: "Dummy"
 });
 
-function findRecommendations(tab) {
-  return Promise.resolve([
-    {
-      label: "Reddit",
-      url: "https://reddit.com"
-    }, {
-      label: "Mozilla",
-      url: "https://mozilla.org"
-    }
-  ]);
-}
+recommenderRegistry.register({
+  findRecommendations: function (tab) {
+    return Promise.resolve([
+      {
+        label: "HN",
+        url: "https://news.ycombinator.com"
+      }
+    ]);
+  },
+  name: "Dummy 2"
+});
+
+
+recommenderRegistry.init();
