@@ -23,4 +23,4 @@ if [[ -z "$NO_AUTO" ]] ; then
     --exec bash $0 -- --upload &
 fi
 
-jpm run --addon-dir="$base/addon" --no-copy "$@" 2>&1
+jpm run --binary nightly --addon-dir="$base/addon" --no-copy "$@" 2>&1
