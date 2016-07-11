@@ -1,0 +1,16 @@
+{
+  "title": "Recommend Links",
+  "name": "recomment-links",
+  "version": "0.0.1",
+  "description": "Contextually recommend links",
+  "main": "index.js",
+  "author": "Mozilla",
+  "engines": {
+    "firefox": ">=38.0a1",
+    "fennec": ">=38.0a1"
+  },
+  "license": "MPL",
+  "keywords": [
+    "jetpack"
+  ]
+}
