@@ -5,7 +5,7 @@ try {
   for (let link of links) {
     let href = link.href;
     href = href.replace(/\#.*/, "");
-    if (! href || href.indexOf(baseLink) === 0) {
+    if (!href || href.indexOf(baseLink) === 0) {
       continue;
     }
     if (seen[href]) {

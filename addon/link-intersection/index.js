@@ -10,7 +10,7 @@ let sqliteConnection;
 
 Sqlite.openConnection({
   path: "link-intersection.sqlite"
-}).then((connection) => {
+}).then(connection => {
   connection.execute(`
     CREATE TABLE IF NOT EXISTS page_links (
       link_href TEXT NOT NULL,
@@ -21,12 +21,12 @@ Sqlite.openConnection({
     CREATE INDEX page_links_href ON page_exists(href);
   `).then(() => {
     sqliteConnection = connection;
-  }).catch((error) => {
+  }).catch(error => {
     console.error("Error creating table:", error);
   });
 });
 
-tabs.on("ready", (tab) => {
+tabs.on("ready", tab => {
   let finisher;
   tab.readLinksFinished = new Promise((resolve, reject) => {
     finisher = resolve;
@@ -37,14 +37,14 @@ tabs.on("ready", (tab) => {
     contentScriptFile: data.url("link-intersection-reader.js")
   });
   let links = [];
-  worker.port.on("link", (result) => {
+  worker.port.on("link", result => {
     links.push(result);
   });
   worker.port.on("finished", () => {
     sqliteConnection.execute(`
       DELETE FROM page_links WHERE url = ?1
     `, [tabUrl]).then(() => {
-      return forEachPromise(links, (link) => {
+      return forEachPromise(links, link => {
         return sqliteConnection.execute(`
           INSERT INTO page_links (link_href, link_title, url, url_title)
           VALUES (?1, ?2, ?3, ?4)
@@ -55,7 +55,7 @@ tabs.on("ready", (tab) => {
       if (tab.onFinishCall) {
         tab.onFinishCall();
       }
-    }).catch((error) => {
+    }).catch(error => {
       console.error("Error executing SQL:", error);
     });
   });
@@ -64,7 +64,7 @@ tabs.on("ready", (tab) => {
 function findRecommendations(tab) {
   let tabUrl = tab.url;
   let rowResults = [];
-  if (! tab.readLinksFinished) {
+  if (!tab.readLinksFinished) {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         try {
@@ -96,14 +96,13 @@ function findRecommendations(tab) {
       callback: () => {
         tabs.open({
           url: data.url("link-intersection-refresher.html"),
-          onOpen: (tab) => {
+          onOpen: tab => {
             tab.attach({
               contentScriptFile: data.url("link-intersection-refresher.js"),
-              onAttach: (worker) => {
-                worker.port.on("doit", ({number, howfar}) => {
+              onAttach: worker => {
+                worker.port.on("doit", ({ number, howfar }) => {
                   startLoadingPages(number, howfar);
                 });
-
               }
             });
           }
@@ -115,13 +114,13 @@ function findRecommendations(tab) {
 }
 
 function forEachPromise(list, func) {
-  if (! list.length) {
+  if (!list.length) {
     return Promise.resolve();
   }
   function runOne(index) {
     let promise = Promise.resolve(func(list[index]));
-    if (index < list.length-1) {
-      return promise.then(runOne.bind(null, index+1));
+    if (index < list.length - 1) {
+      return promise.then(runOne.bind(null, index + 1));
     }
     return promise;
   }
@@ -140,10 +139,10 @@ function startLoadingPages(numberOfTabs, howfar) {
     count: howfar,
     sort: "visitCount",
     descending: true
-  }).on("end", (results) => {
+  }).on("end", results => {
     function onReady(tab) {
-      tab.onFinishCall = function () {
-        if (! results.length) {
+      tab.onFinishCall = function() {
+        if (!results.length) {
           tab.close();
           setTimeout(() => {
             tabs.off("ready", onReady);
@@ -156,8 +155,8 @@ function startLoadingPages(numberOfTabs, howfar) {
       };
     }
     tabs.on("ready", onReady);
-    for (let i=0; i<numberOfTabs; i++) {
-      tabs.open({url: "about:blank", inBackground: true});
+    for (let i = 0; i < numberOfTabs; i++) {
+      tabs.open({ url: "about:blank", inBackground: true });
     }
   });
 }
@@ -165,19 +164,18 @@ function startLoadingPages(numberOfTabs, howfar) {
 pageMod.PageMod({
   include: data.url("link-intersection-refresher.html"),
   contentScriptFile: data.url("link-intersection-refresher.js"),
-  onAttach: (worker) => {
-    worker.port.on("doit", ({number, howfar}) => {
+  onAttach: worker => {
+    worker.port.on("doit", ({ number, howfar }) => {
       startLoadingPages(number, howfar);
     });
     worker.port.on("reset", () => {
-      sqliteConnection.execute(`DELETE FROM page_links`).then(() => {
+      sqliteConnection.execute("DELETE FROM page_links").then(() => {
         console.log("All items deleted");
-      }).catch((e) => {
+      }).catch(e => {
         console.error("Error deleting:", e);
       });
     });
   }
 });
-
 
 console.log("LINK INTERSECTION FINISHED");

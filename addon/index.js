@@ -27,23 +27,23 @@ function showRecommendations(recommendations, tab) {
   messageNode.style.marginLeft = "10px";
   messageNode.style.fontWeight = "normal";
   let message = "Recommendations:";
-  if (! recommendations.length) {
+  if (!recommendations.length) {
     message = "No recommendations available";
   }
   message = `[${recommenderRegistry.current().name}] ${message}`;
   messageNode.appendChild(thebox.ownerDocument.createTextNode(message));
-  messageNode.onclick = function () {
+  messageNode.onclick = function() {
     recommenderRegistry.setNext();
     refreshRecommendation(tab);
   };
   let fragment = thebox.ownerDocument.createDocumentFragment();
   fragment.appendChild(messageNode);
   let buttons = [];
-  recommendations.forEach(function (recommendation) {
+  recommendations.forEach(function(recommendation) {
     buttons.push(
       nb.buttonMaker.yes({
         label: recommendation.label,
-        callback: function (notebox, button) {
+        callback(notebox, button) {
           try {
             hideNotificationBar();
             tabs.open(recommendation.url);
@@ -58,7 +58,7 @@ function showRecommendations(recommendations, tab) {
   buttons.push(
     nb.buttonMaker.no({
       label: "Hide",
-      callback: function(notebox, button) {
+      callback(notebox, button) {
         hideNotificationBar();
       }
     })
@@ -66,18 +66,18 @@ function showRecommendations(recommendations, tab) {
   nb.banner({
     id: notificationBarValue,
     msg: fragment,
-    callback: function (message) {
+    callback(message) {
       // Only message should be AlertClose
       if (message !== "removed") {
         console.warn("Unexpected message on notificationbox:", message);
         return;
       }
     },
-    buttons: buttons
+    buttons
   });
 
   if (!initialized) {
-    if (! Services) {
+    if (!Services) {
       let importer = {};
       Cu.import("resource://gre/modules/Services.jsm", importer);
       Services = importer.Services;
@@ -109,15 +109,15 @@ function hideNotificationBar(browser) {
 tabs.on("ready", refreshRecommendation);
 
 function refreshRecommendation(tab) {
-  recommenderRegistry.current().findRecommendations(tab).then((recommendations) => {
+  recommenderRegistry.current().findRecommendations(tab).then(recommendations => {
     showRecommendations(recommendations, tab);
-  }).catch((error) => {
+  }).catch(error => {
     console.error("Error in findRecommendations:", error);
   });
 }
 
 recommenderRegistry.register({
-  findRecommendations: function (tab) {
+  findRecommendations(tab) {
     return Promise.resolve([
       {
         label: "Reddit",
@@ -132,7 +132,7 @@ recommenderRegistry.register({
 });
 
 recommenderRegistry.register({
-  findRecommendations: function (tab) {
+  findRecommendations(tab) {
     return Promise.resolve([
       {
         label: "HN",
