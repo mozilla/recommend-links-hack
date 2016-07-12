@@ -28,7 +28,7 @@ Sqlite.openConnection({
 
 tabs.on("ready", tab => {
   let finisher;
-  tab.readLinksFinished = new Promise((resolve, reject) => {
+  tab.readLinksFinished = new Promise((resolve) => {
     finisher = resolve;
   });
   let tabUrl = tab.url;
@@ -59,7 +59,6 @@ tabs.on("ready", tab => {
 
 function findRecommendations(tab) {
   let tabUrl = tab.url;
-  let rowResults = [];
   if (!tab.readLinksFinished) {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
@@ -73,38 +72,36 @@ function findRecommendations(tab) {
   }
   return tab.readLinksFinished.then(() => {
     delete tab.readLinksFinished;
-    return sqliteConnection.execute(`
-      SELECT p1.url, p1.url_title, p1.link_href FROM page_links AS p1, page_links AS p2
-      WHERE p1.link_href = p2.link_href
-            AND p1.url <> $1
-            AND p2.url = $1
-    `, [tabUrl],
+    return getRelated(tabUrl);
+  }).then((rowResults) => {
+    return [{
+      label: "Refresh",
+      url: data.url("link-intersection-refresher.html")
+    }, {
+      label: "View",
+      url: data.url(`link-intersection-viewer.html#url=${encodeURIComponent(tabUrl)}`)
+    }];
+  });
+}
+
+function getRelated(tabUrl) {
+  let rowResults = [];
+  return sqliteConnection.execute(`
+    SELECT p1.url, p1.url_title, p1.link_href, p1.link_title FROM page_links AS p1, page_links AS p2
+    WHERE p1.link_href = p2.link_href
+          AND p1.url <> $1
+          AND p2.url = $1
+    `,
+    [tabUrl],
     function onRow(row) {
       rowResults.push({
         url: row.getResultByIndex(0),
-        label: row.getResultByIndex(1)
+        label: row.getResultByIndex(1),
+        fromUrl: row.getResultByIndex(2),
+        fromTitle: row.getResultByIndex(3)
       });
-    });
-  }).then(() => {
-    rowResults.push({
-      label: "Refresh",
-      url: data.url("link-intersection-refresher.html"),
-      callback: () => {
-        tabs.open({
-          url: data.url("link-intersection-refresher.html"),
-          onOpen: tab => {
-            tab.attach({
-              contentScriptFile: data.url("link-intersection-refresher.js"),
-              onAttach: worker => {
-                worker.port.on("doit", ({ number, howfar }) => {
-                  startLoadingPages(number, howfar);
-                });
-              }
-            });
-          }
-        });
-      }
-    });
+    }
+  ).then(() => {
     return rowResults;
   });
 }
@@ -174,8 +171,24 @@ pageMod.PageMod({
   }
 });
 
-console.log("LINK INTERSECTION FINISHED");
+pageMod.PageMod({
+  include: new RegExp("^" + RegExpEscape(data.url("link-intersection-viewer.html")) + ".*$"),
+  contentScriptFile: data.url("link-intersection-viewer.js"),
+  onAttach: (worker) => {
+    worker.port.on("getResults", ({ url }) => {
+      getRelated(url).then((result) => {
+        worker.port.emit("data", result);
+      });
+    });
+  }
+});
+
+function RegExpEscape(s) {
+  return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+}
 
 require("sdk/system/unload").when(() => {
   sqliteConnection.close();
 });
+
+console.log("LINK INTERSECTION FINISHED");
