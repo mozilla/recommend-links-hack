@@ -111,6 +111,8 @@ tabs.on("ready", refreshRecommendation);
 function refreshRecommendation(tab) {
   recommenderRegistry.current().findRecommendations(tab).then((recommendations) => {
     showRecommendations(recommendations, tab);
+  }).catch((error) => {
+    console.error("Error in findRecommendations:", error);
   });
 }
 
@@ -141,5 +143,8 @@ recommenderRegistry.register({
   name: "Dummy 2"
 });
 
+require("./link-intersection/index.js");
 
 recommenderRegistry.init();
+
+console.log("RECOMMENDER FINISHED LOADING");
