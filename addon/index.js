@@ -34,7 +34,7 @@ function showRecommendations(recommendations, tab) {
   messageNode.appendChild(thebox.ownerDocument.createTextNode(message));
   messageNode.onclick = function () {
     recommenderRegistry.setNext();
-    refreshRecommendation();
+    refreshRecommendation(tab);
   };
   let fragment = thebox.ownerDocument.createDocumentFragment();
   fragment.appendChild(messageNode);
