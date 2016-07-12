@@ -4,6 +4,17 @@ set -e
 cd "$(dirname ${BASH_SOURCE[0]})/.."
 base="$(pwd)"
 PATH="node_modules/.bin:$PATH"
+nodemon_pid=
+
+_cleanup () {
+  if [[ -n "$nodemon_pid" ]] ; then
+    # Seems to usually be dead by this point?  Good I guess?
+    kill $nodemon_pid >& /dev/null || true
+  fi
+}
+
+trap _cleanup EXIT
+
 
 if [[ "$1" = "--upload" ]] ; then
   jpm xpi --addon-dir="$base/addon"
@@ -21,6 +32,7 @@ if [[ -z "$NO_AUTO" ]] ; then
     --on-change-only \
     -e .js,.scss,.css,.png,.svg,.ttf,.html \
     --exec bash $0 -- --upload &
+  nodemon_pid=$!
 fi
 
 jpm run --binary nightly --addon-dir="$base/addon" --no-copy "$@" 2>&1
