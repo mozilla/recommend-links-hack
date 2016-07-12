@@ -1,0 +1,4 @@
+{
+  "extensions.sdk.console.logLevel": "all",
+  "xpinstall.signatures.required": false
+}
