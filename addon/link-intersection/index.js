@@ -144,7 +144,7 @@ function startLoadingPages(numberOfTabs, howfar) {
             tabs.off("ready", onReady);
           }, 5000);
         } else {
-          console.log(`...${results.length} left`);
+          console.log(`...${results.length} left (${results[0].url})`);
           let { url } = results.shift();
           tab.url = url;
         }
@@ -175,3 +175,7 @@ pageMod.PageMod({
 });
 
 console.log("LINK INTERSECTION FINISHED");
+
+require("sdk/system/unload").when(() => {
+  sqliteConnection.close();
+});
