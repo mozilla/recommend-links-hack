@@ -16,11 +16,13 @@ const allStrategies = [];
 let strategyIndex = 0;
 
 exports.current = function () {
-  console.log("selecting", allStrategies, strategyIndex);
   return allStrategies[strategyIndex];
 };
 
 exports.register = function (value) {
+  if (! (value && value.findRecommendations && value.name)) {
+    throw new Error("Invalid recommendation engine");
+  }
   allStrategies.push(value);
 };
 
