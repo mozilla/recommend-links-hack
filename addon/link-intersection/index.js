@@ -78,7 +78,7 @@ function findRecommendations(tab) {
       label: "Refresh",
       url: data.url("link-intersection-refresher.html")
     }, {
-      label: "View",
+      label: `View ${rowResults.length}...`,
       url: data.url(`link-intersection-viewer.html#url=${encodeURIComponent(tabUrl)}`)
     }];
   });
@@ -88,7 +88,8 @@ function getRelated(tabUrl) {
   let rowResults = [];
   return sqliteConnection.execute(`
     SELECT p1.url, p1.url_title, p1.link_href, p1.link_title FROM page_links AS p1, page_links AS p2
-    WHERE p1.link_href = p2.link_href
+    WHERE (p1.link_href = p2.link_href
+           OR p1.link_href = p2.url)
           AND p1.url <> $1
           AND p2.url = $1
     `,
