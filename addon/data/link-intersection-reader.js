@@ -1,10 +1,10 @@
 try {
   let seen = {};
-  let baseLink = location.href.replace(/\#.*/, "");
+  let baseLink = location.href.replace(/#.*/, "");
   let links = document.querySelectorAll("a");
   for (let link of links) {
     let href = link.href;
-    href = href.replace(/\#.*/, "");
+    href = href.replace(/#.*/, "");
     if (!href || href.indexOf(baseLink) === 0) {
       continue;
     }

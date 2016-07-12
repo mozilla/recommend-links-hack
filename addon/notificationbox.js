@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
-
 /**
  * Notification Module
  *
@@ -102,17 +100,17 @@ const notificationbox = function(win, bottom) {
     win = win || getMostRecentBrowserWindow();
     let nb = win.gDataNotificationInfoBar._notificationBox;
     return nb;
-  } else {
-    let wm = chrome.Cc["@mozilla.org/appshell/window-mediator;1"]
-                     .getService(chrome.Ci.nsIWindowMediator);
-    win = win || wm.getMostRecentWindow("navigator:browser");  // is this dupe?
-    let nb = win.document.getElementById("high-priority-global-notificationbox");
-    if (USE_PER_WINDOW_NOTIFICATIONS && nb) {
-      return nb; // 33+?
-    } else {
-      return win.gBrowser.getNotificationBox();
-    }
   }
+
+  let wm = chrome.Cc["@mozilla.org/appshell/window-mediator;1"]
+                   .getService(chrome.Ci.nsIWindowMediator);
+  win = win || wm.getMostRecentWindow("navigator:browser");  // is this dupe?
+  let nb = win.document.getElementById("high-priority-global-notificationbox");
+  if (USE_PER_WINDOW_NOTIFICATIONS && nb) {
+    return nb; // 33+?
+  }
+
+  return win.gBrowser.getNotificationBox();
 };
 
 /* callback should register on AlertShow, AlertClose, TODO!
@@ -163,31 +161,36 @@ const banner = new Class({
     };
 
     let { msg, id, icon, priority, buttons, callback, nb } = options;
-    if (!buttons) buttons = [];
-    if (!id) id = "banner_" + uuid();
-    if (!icon) icon = null; // 'chrome://browser/skin/Info.png';
+    if (!buttons) {
+      buttons = [];
+    }
+    if (!id) {
+      id = "banner_" + uuid();
+    }
+    if (!icon) {
+      icon = null; // 'chrome://browser/skin/Info.png';
+    }
     if (nb) {
       this.nb = nb;
     } else {
       this.nb = notificationbox();
     }
     if ((typeof priority) === "string") {
-        priority = nb[priority] || 1;  // TODO, throw here?
-    } else {
-        if (!priority) priority = 1;
+      priority = nb[priority] || 1;  // TODO, throw here?
+    } else if (!priority) {
+      priority = 1;
     }
 
     EventTarget.prototype.initialize.call(this, defaults);
 
     // our AlertClose
-    let that = this;
     if (callback === undefined) {
-      callback = function(message) {
+      callback = message => {
         if (message === "removed") {
-          emit(that, "AlertClose", that.notice);
+          emit(this, "AlertClose", this.notice);
         } else {
-          console.log(message, that);
-          emit(that, message, that.notice);
+          console.log(message, this);
+          emit(this, message, this.notice);
         }
         return false;
       };
@@ -245,8 +248,7 @@ buttonMaker.__noSuchMethod__ = function(method, args) {
         // TODO, a sensible default action?  maybe observer emit?
       }
     };
-    let f = function(options) {
-      if (!options) options = {};
+    let f = function(options = {}) {
       return mix(defaults, options); // TODO, sorry this is gross!
     };
     buttonMaker[label] = f;

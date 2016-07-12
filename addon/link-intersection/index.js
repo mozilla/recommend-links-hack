@@ -43,14 +43,10 @@ tabs.on("ready", tab => {
   worker.port.on("finished", () => {
     sqliteConnection.execute(`
       DELETE FROM page_links WHERE url = ?1
-    `, [tabUrl]).then(() => {
-      return forEachPromise(links, link => {
-        return sqliteConnection.execute(`
-          INSERT INTO page_links (link_href, link_title, url, url_title)
-          VALUES (?1, ?2, ?3, ?4)
-        `, [link.href, link.title, tabUrl, tabTitle]);
-      });
-    }).then(() => {
+    `, [tabUrl]).then(() => forEachPromise(links, link => sqliteConnection.execute(`
+      INSERT INTO page_links (link_href, link_title, url, url_title)
+      VALUES (?1, ?2, ?3, ?4)
+    `, [link.href, link.title, tabUrl, tabTitle]))).then(() => {
       finisher();
       if (tab.onFinishCall) {
         tab.onFinishCall();

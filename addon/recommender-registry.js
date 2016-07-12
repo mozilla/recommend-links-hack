@@ -34,7 +34,7 @@ exports.setNext = function() {
 exports.init = function() {
   let preferred = prefs.searchStrategy || "";
   for (let i = 0; i < allStrategies.length; i++) {
-    if (allStrategies[i].name == preferred) {
+    if (allStrategies[i].name === preferred) {
       strategyIndex = i;
       break;
     }
