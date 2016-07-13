@@ -3,19 +3,32 @@
  */
 
 const { data } = require("sdk/self");
-const tabs = require("sdk/tabs");
 
 const { Cu } = require("chrome");
-Cu.import("resource://gre/modules/PlacesUtils.jsm");
+const { PlacesUtils } = Cu.import("resource://gre/modules/PlacesUtils.jsm", {});
 
+/**
+ * Extract all "words" without punctuation from some text.
+ */
 function tokenize(text) {
-  // Extract all "words" without punctuation
-  return (text || "").trim().toLowerCase().replace(/[^\s\w]+/g, "").split(/\s+/).
-    // XXX: Ignore short words
-    filter(word => word.length > 4);
+  return (text || "").trim().toLowerCase().replace(/[^\s\w]+/g, "").split(/\s+/)
+    // XXX: Ignore short words.
+    .filter(word => word.length > 4);
 }
 
+/**
+ * Create a recommendation label for a link.
+ */
+function makeLabel(title, reason, score) {
+  let topReasons = [...reason.keys()].sort((a, b) => b.length - a.length).slice(0, 2);
+  return `${score} (${topReasons}): ${title.slice(0, 30)}`;
+}
+
+/**
+ * Generate recommendations for a given tab.
+ */
 function findRecommendations(tab) {
+  // Keep track of words found in titles of next pages.
   let nextWords = new Map();
 
   // Get all page titles of pages previously visited from the current tab's url.
@@ -73,21 +86,22 @@ function findRecommendations(tab) {
       }
     });
 
+    // Give recommendations when all links have been processed.
     return new Promise(resolve => {
       worker.port.on("finished", () => {
         // Select the top 5 highest ranked page links.
-        resolve([...pageLinks.entries()].sort((a, b) => b[1].score - a[1].score).
-          slice(0, 5).map(([{ href, title }, { reason, score }]) => ({
+        resolve([...pageLinks.entries()].sort((a, b) => b[1].score - a[1].score)
+          .slice(0, 5).map(([{ href, title }, { reason, score }]) => ({
             // Include the score, two longest words, and some of the title.
-            label: `${score} (${[...reason.keys()].sort((a, b) => b.length - a.length).slice(0, 2)}): ${title.slice(0, 30)}`,
+            label: makeLabel(title, reason, score),
             url: href
           })));
       });
     });
-
   });
 }
 
+// Register this algorithm as a recommender.
 require("../recommender-registry").register({
   findRecommendations,
   name: "Similar next"
