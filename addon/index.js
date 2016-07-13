@@ -144,6 +144,7 @@ recommenderRegistry.register({
 });
 
 require("./link-intersection/index.js");
+require("./similar-next/index.js");
 
 recommenderRegistry.init();
 
