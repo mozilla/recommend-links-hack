@@ -13,20 +13,36 @@ function getElement(id) {
 getElement("page_title").textContent = hashVars.title || "?";
 getElement("page_url").textContent = hashVars.url;
 
+function makeLink(url, title) {
+  let a = document.createElement("a");
+  a.href = url;
+  a.textContent = title || (url.replace(/^https?:\/\//i, ""));
+  return a;
+}
+
 self.port.on("data", (results) => {
   let container = getElement("result-container");
   container.innerHTML = "";
-  for (let item of results) {
+  for (let i = 0; i < results.length; i++) {
+    let item = results[i];
+    if (item.url.startsWith("about:")) {
+      continue;
+    }
     let li = document.createElement("li");
-    let a = document.createElement("a");
-    a.href = item.url;
-    a.textContent = item.title || item.label || item.url;
+    let a = makeLink(item.url, item.label);
     li.appendChild(a);
-    let f = document.createElement("a");
-    f.href = item.fromUrl;
-    f.textContent = item.fromTitle || item.fromUrl;
-    li.appendChild(document.createTextNode(" (colinks: "));
-    li.append(f);
+    li.appendChild(document.createTextNode(" (colinks:"));
+    for (;;) {
+      let f = makeLink(item.fromUrl, item.fromTitle);
+      li.appendChild(document.createTextNode(" "));
+      li.appendChild(f);
+      if (results[i + 1] && results[i + 1].url === item.url) {
+        i++;
+        item = results[i];
+      } else {
+        break;
+      }
+    }
     li.appendChild(document.createTextNode(")"));
     container.appendChild(li);
   }

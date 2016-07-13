@@ -2,9 +2,11 @@ const { data } = require("sdk/self");
 const { Cu } = require("chrome");
 const tabs = require("sdk/tabs");
 const { Sqlite } = Cu.import("resource://gre/modules/Sqlite.jsm", {});
-const { setTimeout } = require("sdk/timers");
+const { setTimeout, clearTimeout } = require("sdk/timers");
 const pageMod = require("sdk/page-mod");
 const { search } = require("sdk/places/history");
+
+const TAB_POLL_TIMEOUT = 20000; // 20 seconds
 
 let sqliteConnection;
 
@@ -74,11 +76,16 @@ function findRecommendations(tab) {
     delete tab.readLinksFinished;
     return getRelated(tabUrl);
   }).then((rowResults) => {
+    let distinct = {};
+    for (let item of rowResults) {
+      distinct[item.url] = true;
+    }
+    distinct = Object.keys(distinct).length;
     return [{
       label: "Refresh",
       url: data.url("link-intersection-refresher.html")
     }, {
-      label: `View ${rowResults.length}...`,
+      label: `View ${distinct}...`,
       url: data.url(`link-intersection-viewer.html#url=${encodeURIComponent(tabUrl)}`)
     }];
   });
@@ -103,6 +110,12 @@ function getRelated(tabUrl) {
       });
     }
   ).then(() => {
+    rowResults.sort((a, b) => {
+      if (a.url === b.url) {
+        return a.fromUrl > b.fromUrl ? -1 : 1;
+      }
+      return a.url > b.url ? -1 : 1;
+    });
     return rowResults;
   });
 }
@@ -131,28 +144,83 @@ function startLoadingPages(numberOfTabs, howfar) {
     string: ""
   }, {
     count: howfar,
-    sort: "visitCount",
+    sort: "lastModified",
     descending: true
-  }).on("end", results => {
-    function onReady(tab) {
-      tab.onFinishCall = function() {
-        if (!results.length) {
-          tab.close();
-          setTimeout(() => {
-            tabs.off("ready", onReady);
-          }, 5000);
-        } else {
-          console.log(`...${results.length} left (${results[0].url})`);
-          let { url } = results.shift();
-          tab.url = url;
-        }
-      };
-    }
-    tabs.on("ready", onReady);
-    for (let i = 0; i < numberOfTabs; i++) {
-      tabs.open({ url: "about:blank", inBackground: true });
-    }
+  }).on("end", (unfilteredResults) => {
+    filterOutRecordedSites(unfilteredResults).then((results) => {
+      function onReady(tab) {
+        tab.onFinishCall = function tryNext() {
+          if (tab.tabTimeoutId) {
+            clearTimeout(tab.tabTimeoutId);
+            delete tab.tabTimeoutId;
+          }
+          if (!results.length) {
+            tab.close();
+            setTimeout(() => {
+              tabs.off("ready", onReady);
+            }, 5000);
+          } else {
+            console.log(`...${results.length} left (${results[0].url})`);
+            let { url } = results.shift();
+            tab.url = url;
+            let tabTimeoutId = setTimeout(() => {
+              delete tab.tabTimeoutId;
+              tryNext();
+            }, TAB_POLL_TIMEOUT);
+            tab.tabTimeoutId = tabTimeoutId;
+          }
+        };
+      }
+      tabs.on("ready", onReady);
+      for (let i = 0; i < numberOfTabs; i++) {
+        tabs.open({ url: "about:blank", inBackground: true });
+      }
+    });
   });
+}
+
+function filterOutRecordedSites(historyItems) {
+  return sqliteConnection.execute(`
+    SELECT DISTINCT url FROM page_links
+  `).then((rows) => {
+    let found = {};
+    for (let row of rows) {
+      found[row.getResultByIndex(0)] = true;
+    }
+    console.log("found", found);
+    let newHistory = [];
+    let blacklisted = 0;
+    for (let item of historyItems) {
+      if (blacklistUrl(item.url)) {
+        blacklisted++;
+        continue;
+      }
+      if (item.url.indexOf("news.ycom") != -1) {
+        console.log("checker", item.url, item, found[item.url]);
+      }
+      if (!(found[item.url] || found[item.url.replace(/^http:/, "https:")])) {
+        newHistory.push(item);
+      }
+    }
+    console.log(`Filtered ${historyItems.length - newHistory.length} from ${historyItems.length} using base of ${Object.keys(found).length} including ${blacklisted} blacklists`);
+    return newHistory;
+  });
+}
+
+function blacklistUrl(url) {
+  if (url.search(/^https?:\/\//i) === -1) {
+    return true;
+  }
+  if (url.search(/irccloud.com/i) !== -1) {
+    return true;
+  }
+  if (url.search(/mail.google.com/i) !== -1) {
+    return true;
+  }
+  if (url.search(/mozilla.okta.com/i) !== -1) {
+    return true;
+  }
+  return false;
 }
 
 pageMod.PageMod({
