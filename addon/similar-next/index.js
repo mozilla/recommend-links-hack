@@ -56,6 +56,14 @@ function findRecommendations(tab) {
       });
     });
 
+    // XXX: Ignore common words that appear in more than half of the pages.
+    let threshold = Math.ceil(rows.length / 2);
+    nextWords.forEach((count, word) => {
+      if (count > threshold) {
+        nextWords.delete(word);
+      }
+    });
+
     // Load a script to extract links from the tab.
     let worker = tab.attach({
       contentScriptFile: data.url("link-intersection-reader.js")
@@ -64,9 +72,15 @@ function findRecommendations(tab) {
     // Process each link from the page.
     let pageLinks = new Map();
     worker.port.on("link", link => {
+      // XXX: Skip links that don't have many words.
+      let words = tokenize(link.title);
+      if (words.length < 3) {
+        return;
+      }
+
       let score = 0;
       let reason = new Set();
-      tokenize(link.title).forEach(word => {
+      words.forEach(word => {
         // Ignore words that we haven't seen before.
         let wordWeight = nextWords.get(word);
         if (!wordWeight) {
