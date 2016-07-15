@@ -7,6 +7,7 @@ const { data } = require("sdk/self");
 const { Cu } = require("chrome");
 const { PlacesUtils } = Cu.import("resource://gre/modules/PlacesUtils.jsm", {});
 
+const MAX_COMMON_WORD_RATIO = 0.5;
 const MAX_LABEL_LENGTH = 60;
 const MAX_REASONS = 2;
 const MAX_RECOMMENDATIONS = 3;
@@ -67,8 +68,8 @@ function findRecommendations(tab) {
     // XXX: Ignore words from the current page's title.
     tokenize(tab.title).forEach(word => nextWords.delete(word));
 
-    // XXX: Ignore common words that appear in more than half of the pages.
-    let threshold = Math.ceil(rows.length / 2);
+    // XXX: Ignore common words that appear in more than some ratio of the pages.
+    let threshold = Math.ceil(rows.length * MAX_COMMON_WORD_RATIO);
     nextWords.forEach((count, word) => {
       if (count > threshold) {
         nextWords.delete(word);
