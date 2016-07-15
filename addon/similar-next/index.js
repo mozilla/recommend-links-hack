@@ -9,6 +9,7 @@ const { PlacesUtils } = Cu.import("resource://gre/modules/PlacesUtils.jsm", {});
 
 const MAX_LABEL_LENGTH = 60;
 const MAX_RECOMMENDATIONS = 3;
+const MIN_WORD_LENGTH = 5;
 
 /**
  * Extract all "words" without punctuation from some text.
@@ -16,7 +17,7 @@ const MAX_RECOMMENDATIONS = 3;
 function tokenize(text) {
   return (text || "").trim().toLowerCase().replace(/[^\s\w]+/g, "").split(/\s+/)
     // XXX: Ignore short words.
-    .filter(word => word.length > 4);
+    .filter(word => word.length >= MIN_WORD_LENGTH);
 }
 
 /**
