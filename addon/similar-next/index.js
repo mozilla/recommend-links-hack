@@ -8,6 +8,7 @@ const { Cu } = require("chrome");
 const { PlacesUtils } = Cu.import("resource://gre/modules/PlacesUtils.jsm", {});
 
 const MAX_LABEL_LENGTH = 60;
+const MAX_RECOMMENDATIONS = 3;
 
 /**
  * Extract all "words" without punctuation from some text.
@@ -113,9 +114,9 @@ function findRecommendations(tab) {
     // Give recommendations when all links have been processed.
     return new Promise(resolve => {
       worker.port.on("finished", () => {
-        // Select the top 5 highest ranked page links.
+        // Select the top highest ranked page links.
         resolve([...pageLinks.entries()].sort((a, b) => b[1].score - a[1].score)
-          .slice(0, 5).map(([{ href, title }, { reason, score }]) => ({
+          .slice(0, MAX_RECOMMENDATIONS).map(([{ href, title }, { reason, score }]) => ({
             // Include the score, two longest words, and some of the title.
             label: makeLabel(title, reason, score),
             url: href
