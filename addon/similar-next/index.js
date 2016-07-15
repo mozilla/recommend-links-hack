@@ -18,9 +18,9 @@ const MIN_WORD_LENGTH = 5;
  * Extract all "words" without punctuation from some text.
  */
 function tokenize(text) {
-  return (text || "").trim().toLowerCase().replace(/[^\s\w]+/g, "").split(/\s+/)
+  return (text || "").trim().toLowerCase().replace(/[^0-9a-z\u00c0-\u017f]+/g, " ")
     // XXX: Ignore short words.
-    .filter(word => word.length >= MIN_WORD_LENGTH);
+    .split(/\s+/).filter(word => word.length >= MIN_WORD_LENGTH);
 }
 
 /**
