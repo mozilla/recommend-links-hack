@@ -10,6 +10,7 @@ const { PlacesUtils } = Cu.import("resource://gre/modules/PlacesUtils.jsm", {});
 const MAX_LABEL_LENGTH = 60;
 const MAX_REASONS = 2;
 const MAX_RECOMMENDATIONS = 3;
+const MIN_LINK_WORDS = 3;
 const MIN_WORD_LENGTH = 5;
 
 /**
@@ -87,7 +88,7 @@ function findRecommendations(tab) {
     worker.port.on("link", link => {
       // XXX: Skip links that don't have many words.
       let words = tokenize(link.title);
-      if (words.length < 3) {
+      if (words.length < MIN_LINK_WORDS) {
         return;
       }
 
