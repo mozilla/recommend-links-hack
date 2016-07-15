@@ -1,4 +1,6 @@
 try {
+  let options = self.options || {};
+
   let seen = {};
   let baseLink = location.href.replace(/#.*/, "");
   let siteBase = location.protocol + "//" + location.host + "/";
@@ -6,13 +8,19 @@ try {
   for (let link of links) {
     let href = link.href;
     href = href.replace(/#.*/, "");
-    if (!href || href.indexOf(baseLink) === 0 || href === siteBase) {
+    if (!href) {
       continue;
     }
-    if (href.search(/^https?:\/\//i) === -1) {
+    if (!options.selfLink && href.indexOf(baseLink) === 0) {
       continue;
     }
-    if (seen[href]) {
+    if (!options.rootLink && href === siteBase) {
+      continue;
+    }
+    if (!options.allProtocols && href.search(/^https?:\/\//i) === -1) {
+      continue;
+    }
+    if (!options.duplicates && seen[href]) {
       continue;
     }
     seen[href] = true;

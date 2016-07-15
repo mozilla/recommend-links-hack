@@ -66,7 +66,10 @@ function findRecommendations(tab) {
 
     // Load a script to extract links from the tab.
     let worker = tab.attach({
-      contentScriptFile: data.url("link-intersection-reader.js")
+      contentScriptFile: data.url("link-intersection-reader.js"),
+      contentScriptOptions: {
+        duplicates: true
+      }
     });
 
     // Process each link from the page.
