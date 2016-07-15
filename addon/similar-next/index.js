@@ -7,6 +7,8 @@ const { data } = require("sdk/self");
 const { Cu } = require("chrome");
 const { PlacesUtils } = Cu.import("resource://gre/modules/PlacesUtils.jsm", {});
 
+const MAX_LABEL_LENGTH = 60;
+
 /**
  * Extract all "words" without punctuation from some text.
  */
@@ -17,19 +19,21 @@ function tokenize(text) {
 }
 
 /**
- * Create a recommendation label for a link.
- */
-function makeLabel(title, reason, score) {
-  let topReasons = [...reason.keys()].sort((a, b) => b.length - a.length).slice(0, 2);
-  return `${score} (${topReasons}): ${title.slice(0, 30)}`;
-}
-
-/**
  * Generate recommendations for a given tab.
  */
 function findRecommendations(tab) {
   // Keep track of words found in titles of next pages.
   let nextWords = new Map();
+
+  // Create a recommendation label for a link.
+  let makeLabel = (title, reason) => {
+    // Show the words with highest weight.
+    let topReasons = [...reason.keys()].sort((a, b) =>
+      nextWords.get(b) - nextWords.get(a)).slice(0, 2);
+    let label = `(${topReasons}) ${title}`;
+    return label.length > MAX_LABEL_LENGTH ?
+      label.slice(0, MAX_LABEL_LENGTH) + "…" : label;
+  };
 
   // Get all page titles of pages previously visited from the current tab's url.
   return PlacesUtils.promiseDBConnection().then(db => db.executeCached(`
