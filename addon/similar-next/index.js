@@ -60,6 +60,9 @@ function findRecommendations(tab) {
       });
     });
 
+    // XXX: Ignore words from the current page's title.
+    tokenize(tab.title).forEach(word => nextWords.delete(word));
+
     // XXX: Ignore common words that appear in more than half of the pages.
     let threshold = Math.ceil(rows.length / 2);
     nextWords.forEach((count, word) => {
