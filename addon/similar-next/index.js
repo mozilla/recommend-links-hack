@@ -8,6 +8,7 @@ const { Cu } = require("chrome");
 const { PlacesUtils } = Cu.import("resource://gre/modules/PlacesUtils.jsm", {});
 
 const MAX_LABEL_LENGTH = 60;
+const MAX_REASONS = 2;
 const MAX_RECOMMENDATIONS = 3;
 const MIN_WORD_LENGTH = 5;
 
@@ -31,7 +32,7 @@ function findRecommendations(tab) {
   let makeLabel = (title, reason) => {
     // Show the words with highest weight.
     let topReasons = [...reason.keys()].sort((a, b) =>
-      nextWords.get(b) - nextWords.get(a)).slice(0, 2);
+      nextWords.get(b) - nextWords.get(a)).slice(0, MAX_REASONS);
     let label = `(${topReasons}) ${title}`;
     return label.length > MAX_LABEL_LENGTH ?
       label.slice(0, MAX_LABEL_LENGTH) + "…" : label;
